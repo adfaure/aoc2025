@@ -54,7 +54,6 @@ fn main() -> std::io::Result<()> {
             // Compute the next value
             let new_t = ((cur + 100) + n) % 100;
 
-
             // Either next will be zero or we cross the 0 zero in one direction
             if new_t == 0 || cur != 0 && (n < 0 && n.abs() > cur || n > 0 && n > (100 - cur)) {
                 res = 1;
