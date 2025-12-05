@@ -5,7 +5,7 @@ use std::{fs::File, io::BufReader};
 
 fn main() -> std::io::Result<()> {
     let mut input = Default::default();
-    let _ = BufReader::new(File::open("myinput")?).read_to_string(&mut input);
+    let _ = BufReader::new(File::open("input")?).read_to_string(&mut input);
 
     let p1 = input
         .trim()
