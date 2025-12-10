@@ -6,9 +6,7 @@ use std::{fs::File, io::BufReader};
 use itertools::Itertools;
 
 extern crate lp_modeler;
-use crate::lp_modeler::format::lp_format::LpFileFormat;
 
-use lp_modeler::constraint;
 use lp_modeler::dsl::*;
 use lp_modeler::solvers::{CbcSolver, SolverTrait};
 
@@ -47,16 +45,16 @@ fn parse_line(s: String) -> (Vec<char>, Vec<Vec<i32>>, Vec<usize>) {
 }
 
 fn main() -> std::io::Result<()> {
-    let input_file = "input";
+    let input_file = "myinput";
 
-    // let p1 = BufReader::new(File::open(input_file)?)
-    //     .lines()
-    //     .map_while(|l| l.ok())
-    //     .map(parse_line)
-    //     .map(|(indicators, buttons, _)| solve_p1(&indicators, &buttons))
-    //     .sum::<i32>();
+    let p1 = BufReader::new(File::open(input_file)?)
+        .lines()
+        .map_while(|l| l.ok())
+        .map(parse_line)
+        .map(|(indicators, buttons, _)| solve_p1(&indicators, &buttons))
+        .sum::<i32>();
 
-    // println!("p1: {:?}", p1);
+    println!("p1: {:?}", p1);
 
     let p2 = BufReader::new(File::open(input_file)?)
         .lines()
@@ -77,8 +75,6 @@ fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
         .map(|(idx, button)| (button, LpInteger::new(&format!("k{idx}"))))
         .collect_vec();
 
-    // [ ([0, 1], key) ]
-
     let mut problem = LpProblem::new("p2", LpObjective::Minimize);
 
     // Define Objective Function
@@ -88,17 +84,10 @@ fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
 
     problem += obj_vec.sum();
 
-    // for (button, var) in &vars {
-    //     problem += var; // objective minimize nb of button pushed
-    // }
-
     for (i, state) in desired_state.iter().enumerate() {
         let state_vars = vars.iter().filter(|c| c.0.contains(&(i as i32))).collect_vec();
         problem += sum(&state_vars, |&var| var.1.clone()).equal(*state as i32)
     }
-
-    println!("problem: {:?}", problem);
-    problem.write_lp("problem.lp");
 
     // Specify solver
     let solver = CbcSolver::new();
@@ -106,13 +95,13 @@ fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
     // Run optimisation and process output hashmap
     match solver.run(&problem) {
         Ok(solution) => {
-            println!("Status {:?}", solution.status);
-            for (name, value) in solution.results.iter() {
-                println!("value of {} = {}", name, value);
-            }
-            0
+            // println!("Status {:?}", solution.status);
+            // for (name, value) in solution.results.iter() {
+            //     println!("value of {} = {}", name, value);
+            // }
+            solution.results.values().map(|v| *v as i32 ).sum::<i32>()
         },
-        Err(msg) => unreachable!("{msg:?}"),
+        Err(msg) => unreachable!("{msg:?}. Did you forget to install cbc solver ? `nix shell nixpkgs#cbc` ;)"),
     }
 }
 
