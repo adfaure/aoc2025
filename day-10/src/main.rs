@@ -1,11 +1,18 @@
-use std::collections::VecDeque;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::io::BufRead;
 use std::{fs::File, io::BufReader};
 
 use itertools::Itertools;
 
-fn parse_line(s: String) -> (Vec<char>, Vec<Vec<i32>>, Vec<i32>) {
+extern crate lp_modeler;
+use crate::lp_modeler::format::lp_format::LpFileFormat;
+
+use lp_modeler::constraint;
+use lp_modeler::dsl::*;
+use lp_modeler::solvers::{CbcSolver, SolverTrait};
+
+fn parse_line(s: String) -> (Vec<char>, Vec<Vec<i32>>, Vec<usize>) {
     let mut line = s.split(" ").map(String::from).collect_vec();
     let indicators = line[0]
         .clone()
@@ -20,7 +27,7 @@ fn parse_line(s: String) -> (Vec<char>, Vec<Vec<i32>>, Vec<i32>) {
         .replace("{", "")
         .replace("}", "")
         .split(",")
-        .map(|c| c.parse::<i32>().unwrap())
+        .map(|c| c.parse::<usize>().unwrap())
         .collect_vec();
 
     let buttons = line
@@ -40,18 +47,73 @@ fn parse_line(s: String) -> (Vec<char>, Vec<Vec<i32>>, Vec<i32>) {
 }
 
 fn main() -> std::io::Result<()> {
-    let input_file = "myinput";
+    let input_file = "input";
 
-    let p1 = BufReader::new(File::open(input_file)?)
+    // let p1 = BufReader::new(File::open(input_file)?)
+    //     .lines()
+    //     .map_while(|l| l.ok())
+    //     .map(parse_line)
+    //     .map(|(indicators, buttons, _)| solve_p1(&indicators, &buttons))
+    //     .sum::<i32>();
+
+    // println!("p1: {:?}", p1);
+
+    let p2 = BufReader::new(File::open(input_file)?)
         .lines()
         .map_while(|l| l.ok())
         .map(parse_line)
-        .map(|(indicators, buttons, _)| solve_p1(&indicators, &buttons))
+        .map(|(_, buttons, jolts)| solve_p2(&jolts, &buttons))
         .sum::<i32>();
 
-    println!("p1: {:?}", p1);
-
+    println!("p2: {:?}", p2);
     Ok(())
+}
+
+fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
+
+    let vars = buttons
+        .iter()
+        .enumerate()
+        .map(|(idx, button)| (button, LpInteger::new(&format!("k{idx}"))))
+        .collect_vec();
+
+    // [ ([0, 1], key) ]
+
+    let mut problem = LpProblem::new("p2", LpObjective::Minimize);
+
+    // Define Objective Function
+    let obj_vec: Vec<LpExpression> = (vars.iter().map(|(button, var)| {
+            var * 1
+       })).collect();
+
+    problem += obj_vec.sum();
+
+    // for (button, var) in &vars {
+    //     problem += var; // objective minimize nb of button pushed
+    // }
+
+    for (i, state) in desired_state.iter().enumerate() {
+        let state_vars = vars.iter().filter(|c| c.0.contains(&(i as i32))).collect_vec();
+        problem += sum(&state_vars, |&var| var.1.clone()).equal(*state as i32)
+    }
+
+    println!("problem: {:?}", problem);
+    problem.write_lp("problem.lp");
+
+    // Specify solver
+    let solver = CbcSolver::new();
+
+    // Run optimisation and process output hashmap
+    match solver.run(&problem) {
+        Ok(solution) => {
+            println!("Status {:?}", solution.status);
+            for (name, value) in solution.results.iter() {
+                println!("value of {} = {}", name, value);
+            }
+            0
+        },
+        Err(msg) => unreachable!("{msg:?}"),
+    }
 }
 
 fn solve_p1(desired_state: &[char], buttons: &[Vec<i32>]) -> i32 {
@@ -72,7 +134,7 @@ fn solve_p1(desired_state: &[char], buttons: &[Vec<i32>]) -> i32 {
 
         if seen.insert((button_idx, indicators.clone())) {
             if indicators == desired_state {
-                return idx
+                return idx;
             }
 
             let mut pushed = indicators.clone();
