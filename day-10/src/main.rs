@@ -78,7 +78,7 @@ fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
     let mut problem = LpProblem::new("p2", LpObjective::Minimize);
 
     // Define Objective Function
-    let obj_vec: Vec<LpExpression> = (vars.iter().map(|(button, var)| {
+    let obj_vec: Vec<LpExpression> = (vars.iter().map(|(_, var)| {
             var * 1
        })).collect();
 
@@ -95,10 +95,6 @@ fn solve_p2(desired_state: &[usize], buttons: &[Vec<i32>]) -> i32 {
     // Run optimisation and process output hashmap
     match solver.run(&problem) {
         Ok(solution) => {
-            // println!("Status {:?}", solution.status);
-            // for (name, value) in solution.results.iter() {
-            //     println!("value of {} = {}", name, value);
-            // }
             solution.results.values().map(|v| *v as i32 ).sum::<i32>()
         },
         Err(msg) => unreachable!("{msg:?}. Did you forget to install cbc solver ? `nix shell nixpkgs#cbc` ;)"),

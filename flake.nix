@@ -19,6 +19,7 @@
         devShells.default = with pkgs; mkShell {
           buildInputs = [
             rust-bin.beta.latest.default
+            cbc # For day-10
           ];
         };
       }
