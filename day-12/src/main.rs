@@ -13,7 +13,7 @@ fn main() -> std::io::Result<()> {
         .chunks(5)
         .into_iter()
         .map(|v| {
-            let (n, l1, l2, l3, _) = v.collect_tuple().unwrap();
+            let (_, l1, l2, l3, _) = v.collect_tuple().unwrap();
 
             let shape = vec![
                 l1.chars().collect_vec(),
